@@ -2,7 +2,7 @@ import sys
 
 
 def solve(f, n):
-    for line in f.readlines()[: n]:
+    for line in f.readlines()[-n :]:
         print(line[: -1])
     return
 
