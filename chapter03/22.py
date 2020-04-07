@@ -13,4 +13,6 @@ def solve(text):
 
 with open("output/england.pickle", "rb") as f:
     text = pickle.load(f)
-    print(solve(text))
+    category_names = solve(text)
+    for category_name in category_names:
+        print(category_name)

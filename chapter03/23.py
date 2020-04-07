@@ -17,4 +17,6 @@ def solve(text):
 
 with open("output/england.pickle", "rb") as f:
     text = pickle.load(f)
-    print(solve(text))
+    sections = solve(text)
+    for section in sections:
+        print(section)

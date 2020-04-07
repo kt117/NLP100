@@ -13,6 +13,6 @@ def solve(text):
 
 with open("output/england.pickle", "rb") as f:
     text = pickle.load(f)
-    res = solve(text)
-    for file_name in res:
+    file_names = solve(text)
+    for file_name in file_names:
         print(file_name)
