@@ -3,16 +3,27 @@ import re
 
 
 class MarkupRemover:
-    patterns = [
-        r"(\'{2,5})(.*)(\1)",
-        r"\[\[([^\[\|]*?)\|?([^\[\|]*)\]\]"
+    extract_patterns = [
+        r"(\'{2,5})(.*)(\1)",  # 強調
+        r"\[\[[^\[\|]*?\|?([^\[\|]*)\]\]",  # 内部リンク
+        r"\[\[ファイル:.+\|.+\|(.*)\]\]",  # file
+        r"\{\{lang\|.+\|(.+)\}\}",  # lang
     ]
-    patterns = [re.compile(p) for p in patterns]
-    poss = [r"\2", r"\2"]
+    extract_patterns = [re.compile(p) for p in extract_patterns]
+    poss = [r"\2", r"\1", r"\1", r"\1"]
+
+    remove_patterns = [
+        r"\[http://.+\]",  # link
+        r"<ref.*>",  # ref
+        r"<br */>",  # br
+    ]
+    remove_patterns = [re.compile(p) for p in remove_patterns]
 
     def remove(self, s):
-        for p, pos in zip(self.patterns, self.poss):
+        for p, pos in zip(self.extract_patterns, self.poss):
             s = re.sub(p, pos, s)
+        for p in self.remove_patterns:
+            s = re.sub(p, "", s)
         return s
 
 
