@@ -1,5 +1,5 @@
 import MeCab
-
+import pickle
 
 def solve(f):
     tagger = MeCab.Tagger("-d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd")
@@ -18,7 +18,8 @@ def solve(f):
     return morphemes
 
 
-with open("data/neko.txt") as f:
+with open("data/neko.txt") as f, open("output/morphemes.pickle", mode='wb') as g:
     morphemes = solve(f)
+    pickle.dump(morphemes, g)
     for m in morphemes[: 10]:
         print(m)
