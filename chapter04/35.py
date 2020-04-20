@@ -1,5 +1,6 @@
 import pickle
 
+
 def solve(morphemes):
     word_to_counts = dict()
     for morpheme in morphemes:

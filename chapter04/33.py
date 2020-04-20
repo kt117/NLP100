@@ -1,5 +1,6 @@
 import pickle
 
+
 def solve(morphemes):
     res = list()
     for i in range(len(morphemes)-2):

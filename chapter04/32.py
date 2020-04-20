@@ -1,5 +1,6 @@
 import pickle
 
+
 def solve(morphemes):
     return [morpheme["base"] for morpheme in morphemes if morpheme["pos"] == "動詞"]
 
