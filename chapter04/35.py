@@ -1,7 +1,13 @@
 import pickle
 
 
+def flatten(c):
+    return [a for b in c for a in b]
+    
+
 def solve(morphemes):
+    morphemes = flatten(morphemes)
+
     word_to_counts = dict()
     for morpheme in morphemes:
         w = (morpheme["base"], morpheme["pos"], morpheme["pos1"])

@@ -5,9 +5,10 @@ import pickle
 def solve(f):
     tagger = MeCab.Tagger("-d /usr/lib/x86_64-linux-gnu/mecab/dic/mecab-ipadic-neologd")
 
-    morphemes = list()
+    morphemes_all = list()
     for line in f.readlines():
         node = tagger.parseToNode(line[: -1])
+        morphemes = list()
 
         while node:
             res = node.feature.split(",")
@@ -16,11 +17,13 @@ def solve(f):
             
             node = node.next
 
-    return morphemes
+        morphemes_all.append(morphemes)
+
+    return morphemes_all
 
 
 with open("data/neko.txt") as f, open("output/morphemes.pickle", mode='wb') as g:
-    morphemes = solve(f)
-    pickle.dump(morphemes, g)
-    for m in morphemes[: 10]:
+    morphemes_all = solve(f)
+    pickle.dump(morphemes_all, g)
+    for m in morphemes_all[: 10]:
         print(m)

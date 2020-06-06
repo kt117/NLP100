@@ -4,6 +4,10 @@ import numpy as np
 import pickle
 
 
+def flatten(c):
+    return [a for b in c for a in b]
+
+
 def count(morphemes):
     word_to_counts = dict()
     for morpheme in morphemes:
@@ -22,6 +26,7 @@ def draw(word_to_counts):
 
 
 def solve(morphemes):
+    morphemes = flatten(morphemes)
     word_to_counts = count(morphemes)
     draw(word_to_counts[: 10])
 

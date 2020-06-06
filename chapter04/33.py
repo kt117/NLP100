@@ -1,7 +1,12 @@
 import pickle
 
+def flatten(c):
+    return [a for b in c for a in b]
 
+    
 def solve(morphemes):
+    morphemes = flatten(morphemes)
+
     res = list()
     for i in range(len(morphemes)-2):
         if morphemes[i]["pos"] == "名詞" and morphemes[i + 1]["surface"] == "の" and morphemes[i + 2]["pos"] == "名詞":
