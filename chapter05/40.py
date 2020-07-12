@@ -16,16 +16,11 @@ def cabocha_parse(f, g):
         g.write(parser.parse(sentence).toString(CaboCha.FORMAT_LATTICE))
 
 
-with open("data/neko.txt") as f, open("output/neko.txt.cabocha", mode='w') as g:
+with open("data/ai.ja.txt") as f, open("output/ai.ja.txt.parsed", mode='w') as g:
     cabocha_parse(f, g)
     
 
 class Morph:
-    surface = ""
-    base = ""
-    pos = ""
-    pos1 = ""
-
     def __init__(self, morpheme):
         self.surface = morpheme["surface"]
         self.base = morpheme["base"]
@@ -53,7 +48,7 @@ def solve(f):
     return morphemes_all
 
 
-with open("output/neko.txt.cabocha") as f:
+with open("output/ai.ja.txt.parsed") as f:
     morphemes_all = solve(f)
 
     for morphemes in morphemes_all[: 10]:
