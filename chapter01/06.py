@@ -1,5 +1,5 @@
 def bi_gram(s):
-    return {s[i : i+2] for i in range(len(s)-1)}
+    return {s[i : i + 2] for i in range(len(s) - 1)}
 
 
 def solve(s, t):
