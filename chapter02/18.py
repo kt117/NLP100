@@ -4,5 +4,5 @@ def solve(f):
     return ''.join(['\t'.join(line) for line in lines])
 
 
-with open("data/hightemp.txt") as f:
+with open("chapter02/data/hightemp.txt") as f:
     print(solve(f))

@@ -8,5 +8,5 @@ def solve(f, n):
 
 
 args = sys.argv
-with open("data/hightemp.txt") as f:
+with open("chapter02/data/hightemp.txt") as f:
     solve(f, int(args[1]))

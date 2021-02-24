@@ -8,5 +8,5 @@ def solve(f):
     return sorted(cnt, reverse=True)
 
 
-with open("data/hightemp.txt") as f:
+with open("chapter02/data/hightemp.txt") as f:
     print(solve(f))

@@ -5,5 +5,5 @@ def solve(f, g):
     return ''.join(hlines)
 
 
-with open("output/col1.txt") as f0, open("output/col2.txt") as f1, open("output/res13.txt", mode='w') as h:
+with open("chapter02/outputs/col1.txt") as f0, open("chapter02/outputs/col2.txt") as f1, open("chapter02/outputs/res13.txt", mode='w') as h:
     h.write(solve(f0, f1))
