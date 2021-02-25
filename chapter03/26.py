@@ -29,7 +29,7 @@ def solve(text):
     return fields
 
 
-with open("output/england.pickle", "rb") as f:
+with open("chapter03/outputs/england.pickle", "rb") as f:
     text = pickle.load(f)
     fields = solve(text)
     for k, v in fields.items():

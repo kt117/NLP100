@@ -11,7 +11,7 @@ def solve(text):
     return res
 
 
-with open("output/england.pickle", "rb") as f:
+with open("chapter03/outputs/england.pickle", "rb") as f:
     text = pickle.load(f)
     categories = solve(text)
     for category in categories:
