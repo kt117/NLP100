@@ -9,13 +9,10 @@ with open('chapter06/data/NewsAggregatorDataset/newsCorpora.csv') as f:
 df.columns = ['ID', 'TITLE', 'URL', 'PUBLISHER', 'CATEGORY', 'STORY', 'HOSTNAME', 'TIMESTAMP']
 df = df[df['PUBLISHER'].isin(['Reuters', 'Huffington Post', 'Businessweek', 'Contactmusic.com', 'Daily Mail'])]
 df = df[['TITLE', 'CATEGORY']]
-le = LabelEncoder().fit(df['CATEGORY'])
-print(le.classes_)
-df['CATEGORY'] = le.transform(df['CATEGORY'])
-df = df.sample(frac=1, random_state=42)
+df['CATEGORY'] = df['CATEGORY'].map({'b': 0, 't': 1, 'e': 2, 'm': 3})
 
-df_train, df_test =  train_test_split(df, test_size=0.2, random_state=42)
-df_valid, df_test =  train_test_split(df_test, test_size=0.5, random_state=42)
+df_train, df_test =  train_test_split(df, test_size=0.2, random_state=42, stratify=df['CATEGORY'])
+df_valid, df_test =  train_test_split(df_test, test_size=0.5, random_state=42, stratify=df_test['CATEGORY'])
 
 df_train.to_csv('chapter06/data/processed/train.txt', sep='\t', index=False, header=False)
 df_valid.to_csv('chapter06/data/processed/valid.txt', sep='\t', index=False, header=False)
