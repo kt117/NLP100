@@ -1,4 +1,3 @@
-import pickle
 from gensim.models import KeyedVectors
 from tqdm import tqdm
 import nltk
