@@ -14,9 +14,6 @@ class NeuralNetwork(nn.Module):
         return logits
 
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print('Using {} device'.format(device))
-
 with open("chapter08/data/processed/X_train.csv") as f:
     X = pd.read_csv(f, sep='\t')
 
@@ -25,6 +22,9 @@ with open("chapter08/data/processed/y_train.csv") as f:
 
 X = torch.tensor(np.array(X.drop("TITLE", axis=1).astype('f')))
 y = torch.tensor(np.array(y["CATEGORY"]))
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print('Using {} device'.format(device))
 
 model = NeuralNetwork().to(device)
 
