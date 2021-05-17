@@ -2,7 +2,7 @@ from gensim.models import KeyedVectors
 from tqdm import tqdm
 
 
-model = KeyedVectors.load_word2vec_format("chapter07/data/GoogleNews-vectors-negative300.bin", binary=True)
+model = KeyedVectors.load_word2vec_format("chapter07/models/GoogleNews-vectors-negative300.bin", binary=True)
 
 with open("chapter07/data/questions-words.txt") as f, open("chapter07/outputs/64.txt", 'w') as g:
     for line in tqdm(f.readlines()):
