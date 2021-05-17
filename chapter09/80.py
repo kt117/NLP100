@@ -31,7 +31,8 @@ with open('chapter09/models/word_to_id.pickle', 'wb') as f:
 
 
 def tokenize(text, word_to_id=word_to_id):
-    return [word_to_id.get(word, 0) for word in text]
+    words = nltk.word_tokenize(text)
+    return [word_to_id.get(word, 0) for word in words]
 
 
-print(tokenize(['Selena', 'Gomez', 'exposes', 'her', 'derriere', 'in', 'VERY', 'short', 'cut-offs', 'while', 'heading', 'to', 'a', '...']))
+print(tokenize("Fed official says weak data caused by weather, should not slow taper"))
