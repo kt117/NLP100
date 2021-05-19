@@ -1,4 +1,5 @@
 import pickle
+from gensim.models import KeyedVectors
 from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset
@@ -7,15 +8,17 @@ import nltk
 import numpy as np
 import pandas as pd
 
+np.random.seed(seed=42)
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print('Using {} device'.format(device))
+print(f"Using {device} device")
 
 
 class RNN(nn.Module):
-    def __init__(self, vocab_size, emb_size, padding_idx, output_size, hidden_size):
+    def __init__(self, vocab_size, emb_size, padding_idx, output_size, hidden_size, embeddings):
         super().__init__()
         self.hidden_size = hidden_size
-        self.emb = nn.Embedding(vocab_size, emb_size, padding_idx=padding_idx)
+        self.emb =  nn.Embedding.from_pretrained(embeddings, padding_idx=padding_idx)
         self.rnn = nn.RNN(emb_size, hidden_size, batch_first=True)
         self.fc = nn.Linear(hidden_size, output_size)
 
@@ -44,7 +47,7 @@ class CreateDataset(Dataset):
         return torch.tensor(self.X[index]), torch.tensor(self.y[index])
 
 
-with open('chapter09/models/word_to_id.pickle', 'rb') as f:
+with open("chapter09/models/word_to_id.pickle", 'rb') as f:
     word_to_id = pickle.load(f)
 
 
@@ -95,7 +98,16 @@ PADDING_IDX = VOCAB_SIZE - 1
 OUTPUT_SIZE = 4
 HIDDEN_SIZE = 50
 
-model = RNN(VOCAB_SIZE, EMB_SIZE, PADDING_IDX, OUTPUT_SIZE, HIDDEN_SIZE).to(device)
+vectors = KeyedVectors.load_word2vec_format("chapter07/models/GoogleNews-vectors-negative300.bin", binary=True)
+embeddings = np.zeros((VOCAB_SIZE, EMB_SIZE))
+for word, id in word_to_id.items():
+    if word in vectors:
+        embeddings[id] = vectors[word]
+    else:
+        embeddings[id] = np.random.rand(EMB_SIZE)
+embeddings = torch.tensor(embeddings).float()
+
+model = RNN(VOCAB_SIZE, EMB_SIZE, PADDING_IDX, OUTPUT_SIZE, HIDDEN_SIZE, embeddings).to(device)
 
 
 def collate_fn(batch):

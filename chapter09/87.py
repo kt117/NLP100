@@ -1,5 +1,7 @@
 import pickle
+from gensim.models import KeyedVectors
 from torch import nn
+from torch.nn import functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader, Dataset
 import torch
@@ -7,29 +9,30 @@ import nltk
 import numpy as np
 import pandas as pd
 
+np.random.seed(seed=42)
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print('Using {} device'.format(device))
+print(f"Using {device} device")
 
 
-class RNN(nn.Module):
-    def __init__(self, vocab_size, emb_size, padding_idx, output_size, hidden_size):
+class CNN(nn.Module):
+    def __init__(self, vocab_size, emb_size, padding_idx, output_size, out_channels, kernel_heights, stride, padding, embeddings=None):
         super().__init__()
-        self.hidden_size = hidden_size
-        self.emb = nn.Embedding(vocab_size, emb_size, padding_idx=padding_idx)
-        self.rnn = nn.RNN(emb_size, hidden_size, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
+        if embeddings is None:
+            self.emb = nn.Embedding(vocab_size, emb_size, padding_idx=padding_idx)
+        else:
+            self.emb =  nn.Embedding.from_pretrained(embeddings, padding_idx=padding_idx)
+        self.conv = nn.Conv2d(1, out_channels, (kernel_heights, emb_size), stride=stride, padding=(padding, 0))
+        self.relu = nn.ReLU()
+        self.fc = nn.Linear(out_channels, output_size)
 
     def forward(self, x):
-        self.batch_size = x.size()[0]
-        hidden = self.init_hidden()
-        emb = self.emb(x)
-        out, hidden = self.rnn(emb, hidden)
-        out = self.fc(out[:, -1, :])
+        emb = self.emb(x.unsqueeze(1))
+        conv = self.conv(emb)
+        relu = self.relu(conv.squeeze(3))
+        pool = F.max_pool1d(relu, relu.size()[2])
+        out = self.fc(pool.squeeze(2))
         return out
-
-    def init_hidden(self):
-        hidden = torch.zeros(1, self.batch_size, self.hidden_size)
-        return hidden
 
 
 class CreateDataset(Dataset):
@@ -44,7 +47,7 @@ class CreateDataset(Dataset):
         return torch.tensor(self.X[index]), torch.tensor(self.y[index])
 
 
-with open('chapter09/models/word_to_id.pickle', 'rb') as f:
+with open("chapter09/models/word_to_id.pickle", 'rb') as f:
     word_to_id = pickle.load(f)
 
 
@@ -93,9 +96,21 @@ VOCAB_SIZE = len(set(word_to_id.values())) + 1
 EMB_SIZE = 300
 PADDING_IDX = VOCAB_SIZE - 1
 OUTPUT_SIZE = 4
-HIDDEN_SIZE = 50
+OUT_CHANNELS = 100
+KERNEL_HEIGHTS = 3
+STRIDE = 1
+PADDING = 1
 
-model = RNN(VOCAB_SIZE, EMB_SIZE, PADDING_IDX, OUTPUT_SIZE, HIDDEN_SIZE).to(device)
+vectors = KeyedVectors.load_word2vec_format("chapter07/models/GoogleNews-vectors-negative300.bin", binary=True)
+embeddings = np.zeros((VOCAB_SIZE, EMB_SIZE))
+for word, id in word_to_id.items():
+    if word in vectors:
+        embeddings[id] = vectors[word]
+    else:
+        embeddings[id] = np.random.rand(EMB_SIZE)
+embeddings = torch.tensor(embeddings).float()
+
+model = CNN(VOCAB_SIZE, EMB_SIZE, PADDING_IDX, OUTPUT_SIZE, OUT_CHANNELS, KERNEL_HEIGHTS, STRIDE, PADDING, embeddings).to(device)
 
 
 def collate_fn(batch):
@@ -110,8 +125,8 @@ learning_rate = 1e-3
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
-batch_size = 64
-epochs = 100
+batch_size = 1
+epochs = 10
 for t in range(epochs):
     print(f"Epoch {t + 1}\n-------------------------------")
     train_model(train_dataset, model, loss_fn, optimizer, batch_size, collate_fn)
