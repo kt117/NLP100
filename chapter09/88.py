@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, Dataset
 import torch
 import nltk
 import numpy as np
+import optuna
 import pandas as pd
 
 np.random.seed(seed=42)
@@ -16,23 +17,19 @@ print(f"Using {device} device")
 
 
 class CNN(nn.Module):
-    def __init__(self, vocab_size, emb_size, padding_idx, output_size, out_channels, kernel_heights, stride, padding, embeddings=None):
+    def __init__(self, vocab_size, emb_size, padding_idx, output_size, out_channels, conv_params, drop_rate):
         super().__init__()
-        if embeddings is None:
-            self.emb = nn.Embedding(vocab_size, emb_size, padding_idx=padding_idx)
-        else:
-            self.emb =  nn.Embedding.from_pretrained(embeddings, padding_idx=padding_idx)
-        self.conv = nn.Conv2d(1, out_channels, (kernel_heights, emb_size), stride=stride, padding=(padding, 0))
-        self.relu = nn.ReLU()
-        self.drop = nn.Dropout(0.1)
-        self.fc = nn.Linear(out_channels, output_size)
+        self.emb = nn.Embedding(vocab_size, emb_size, padding_idx=padding_idx)
+        self.convs = nn.ModuleList([nn.Conv2d(1, out_channels, (kernel_height, emb_size), padding=(padding, 0)) for kernel_height, padding in conv_params])
+        self.drop = nn.Dropout(drop_rate)
+        self.fc = nn.Linear(len(conv_params) * out_channels, output_size)
 
     def forward(self, x):
         emb = self.emb(x.unsqueeze(1))
-        conv = self.conv(emb)
-        relu = self.relu(conv.squeeze(3))
-        pool = F.max_pool1d(relu, relu.size()[2])
-        out = self.fc(self.drop(pool.squeeze(2)))
+        convs = [F.relu(conv(emb)).squeeze(3) for conv in self.convs]
+        pools = [F.max_pool1d(conv, conv.size(2)) for conv in convs]
+        pools_cat = torch.cat(pools, 1)
+        out = self.fc(self.drop(pools_cat.squeeze(2)))
         return out
 
 
@@ -69,7 +66,7 @@ def load_dataset(filename, sort_by_length=False):
         index = np.argsort([len(v) for v in X])
         X = [X[i] for i in index]
         y = [y[i] for i in index]
-    
+
     return CreateDataset(X, y)
 
 
@@ -96,47 +93,45 @@ def eval_model(dataset, model, loss_fn):
             pred = model(X)
             loss += loss_fn(pred, y).item()
             correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-    print(f"loss: {loss / size:>7f} accuracy: {correct / size:>7f}")
+    return loss / size, correct / size
 
 
-VOCAB_SIZE = len(set(word_to_id.values())) + 1
-EMB_SIZE = 300
-PADDING_IDX = VOCAB_SIZE - 1
-OUTPUT_SIZE = 4
-OUT_CHANNELS = 100
-KERNEL_HEIGHTS = 3
-STRIDE = 1
-PADDING = 1
+def objective(trial):
+    VOCAB_SIZE = len(set(word_to_id.values())) + 1
+    PADDING_IDX = VOCAB_SIZE - 1
+    OUTPUT_SIZE = 4
+    CONV_PARAMS = [[2, 0], [3, 1], [4, 2]]
+    EPOCHS = 30
 
-vectors = KeyedVectors.load_word2vec_format("chapter07/models/GoogleNews-vectors-negative300.bin", binary=True)
-embeddings = np.zeros((VOCAB_SIZE, EMB_SIZE))
-for word, id in word_to_id.items():
-    if word in vectors:
-        embeddings[id] = vectors[word]
-    else:
-        embeddings[id] = np.random.rand(EMB_SIZE)
-embeddings = torch.tensor(embeddings).float()
+    emb_size = int(trial.suggest_discrete_uniform('emb_size', 100, 300, 100))
+    out_chanels = int(trial.suggest_discrete_uniform('out_chanels', 100, 500, 100))
+    drop_rate = trial.suggest_discrete_uniform('drop_rate', 0.0, 0.5, 0.1)
+    learning_rate = trial.suggest_loguniform('learning_rate', 1e-3, 1e-1)
+    batch_size = 2 ** trial.suggest_int('log_batch_size', 4, 6)
 
-model = CNN(VOCAB_SIZE, EMB_SIZE, PADDING_IDX, OUTPUT_SIZE, OUT_CHANNELS, KERNEL_HEIGHTS, STRIDE, PADDING, embeddings).to(device)
+    model = CNN(VOCAB_SIZE, emb_size, PADDING_IDX, OUTPUT_SIZE, out_chanels, CONV_PARAMS, drop_rate).to(device)
+
+    def collate_fn(batch):
+        features, labels = list(zip(*batch))
+        return pad_sequence(features, batch_first=True, padding_value=PADDING_IDX),  torch.tensor(labels)
+
+    train_dataset = load_dataset("train", sort_by_length=True)
+    valid_dataset = load_dataset("valid")
+    
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+
+    for t in range(EPOCHS):
+        train_model(train_dataset, model, loss_fn, optimizer, batch_size, collate_fn)
+
+    loss_valid, _ = eval_model(valid_dataset, model, loss_fn)
+    return loss_valid
 
 
-def collate_fn(batch):
-    features, labels = list(zip(*batch))
-    return pad_sequence(features, batch_first=True, padding_value=PADDING_IDX),  torch.tensor(labels)
+study = optuna.create_study()
+study.optimize(objective, n_trials=100)
 
-
-train_dataset = load_dataset("train", sort_by_length=True)
-valid_dataset = load_dataset("valid")
-
-learning_rate = 1e-3
-loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
-
-batch_size = 64
-epochs = 100
-for t in range(epochs):
-    print(f"Epoch {t + 1}\n-------------------------------")
-    train_model(train_dataset, model, loss_fn, optimizer, batch_size, collate_fn)
-    eval_model(train_dataset, model, loss_fn)
-    eval_model(valid_dataset, model, loss_fn)
-print("Done!")
+trial = study.best_trial
+print(f'loss: {trial.value:.7f}')
+for key, value in trial.params.items():
+    print(key, value)
